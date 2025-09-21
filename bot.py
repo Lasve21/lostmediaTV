@@ -1,44 +1,25 @@
-# bot.py - semplice bot Telegram via webhook (usare su Render)
 import os
-from flask import Flask, request
 import telebot
+from flask import Flask, request
 
-TOKEN = os.environ.get("BOT_TOKEN")        # -> preso da Render (mai nel codice)
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # -> impostata su Render
-
-if not TOKEN:
-    raise RuntimeError("Errore: imposta la variabile d'ambiente BOT_TOKEN")
-
+TOKEN = os.environ.get("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
-# --- comandi del bot ---
-@bot.message_handler(commands=['start'])
-def on_start(message):
-    bot.send_message(message.chat.id, "Ciao! Bot attivo ✅")
-
-@bot.message_handler(func=lambda m: True)
-def echo_all(message):
-    bot.reply_to(message, f"Hai detto: {message.text}")
-
-# --- endpoint webhook per Telegram ---
-@app.route(f"/{TOKEN}", methods=['POST'])
+@app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    json_string = request.get_data().decode('utf-8')
-    update = telebot.types.Update.de_json(json_string)
+    json_str = request.stream.read().decode("UTF-8")
+    update = telebot.types.Update.de_json(json_str)
     bot.process_new_updates([update])
-    return "", 200
+    return "!", 200
 
-# --- root semplice per test ---
-@app.route("/", methods=['GET'])
+@app.route("/")
 def index():
-    return "Bot up"
+    return "Bot attivo!", 200
 
-# --- imposta il webhook (verrà eseguito all'import; utile con gunicorn su Render) ---
-if WEBHOOK_URL:
-    bot.remove_webhook()
-    ok = bot.set_webhook(url=WEBHOOK_URL)
-    if not ok:
-        print("Attenzione: set_webhook ha restituito False")
-else:
-    print("WEBHOOK_URL non impostata: il bot non riceverà aggiornamenti (solo per sviluppo locale)")
+@bot.message_handler(commands=["start"])
+def start(message):
+    bot.reply_to(message, "Ciao! 🎬 Sono il tuo bot per le serie TV.")
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
