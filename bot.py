@@ -9,8 +9,12 @@ app = Flask(__name__)
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     json_str = request.stream.read().decode("UTF-8")
-    update = telebot.types.Update.de_json(json_str)
-    bot.process_new_updates([update])
+    print("DEBUG: ricevuto POST:", json_str)  # <-- aggiungi questa riga
+    try:
+        update = telebot.types.Update.de_json(json_str)
+        bot.process_new_updates([update])
+    except Exception as e:
+        print("ERRORE:", e)  # <-- stampa eventuali errori
     return "!", 200
 
 @app.route("/")
@@ -20,6 +24,3 @@ def index():
 @bot.message_handler(commands=["start"])
 def start(message):
     bot.reply_to(message, "Ciao! 🎬 Sono il tuo bot per le serie TV.")
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
